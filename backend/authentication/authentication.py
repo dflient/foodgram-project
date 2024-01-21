@@ -1,6 +1,6 @@
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, SAFE_METHODS
 
 from users.models import APIKey
 
@@ -13,7 +13,7 @@ class APIKeyAuthentication(BaseAuthentication):
             AllowAny in (
                 request._request.resolver_match.func.cls.permission_classes
             )
-        ):
+        ) or request.method in SAFE_METHODS:
             return None
 
         api_key = request.META.get('HTTP_AUTHORIZATION')
