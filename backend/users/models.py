@@ -4,10 +4,10 @@ import os
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.db import models
-
 from foodgram_backend.constants import (ADMIN, MAX_API_KEY_LENGHT,
                                         MAX_EMAIL_LENGHT,
                                         MAX_USER_FIELDS_LENGHT, USER)
+
 from .validators import check_name
 
 USERS_ROLES = [

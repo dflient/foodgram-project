@@ -3,11 +3,11 @@ import base64
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
-from rest_framework import serializers
-
 from ingridients.models import Ingridient
+from rest_framework import serializers
 from tags.models import Tag
 from users.serializers import UserSerializer
+
 from .models import Favorite, Recipe, RecipeIngridient, RecipeTag, ShoppingCart
 
 

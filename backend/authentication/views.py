@@ -1,14 +1,14 @@
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
+from recipes.models import User
 from rest_framework import status
 from rest_framework.decorators import (api_view, authentication_classes,
                                        permission_classes)
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
-
-from recipes.models import User
 from users.models import APIKey
+
 from .authentication import APIKeyAuthentication
 
 

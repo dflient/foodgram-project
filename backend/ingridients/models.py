@@ -1,5 +1,4 @@
 from django.db import models
-
 from foodgram_backend.constants import MAX_TAGS_AND_INGS_FIELDS_LENGHT
 
 
