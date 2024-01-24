@@ -123,3 +123,7 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('API-Key',),
     'BLACKLIST_AFTER_ROTATION': True,
 }
+
+CORS_ORIGIN_WHITELIST = [
+    'http://localhost:3000'
+]
