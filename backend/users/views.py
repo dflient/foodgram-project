@@ -1,12 +1,12 @@
-from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404
+from recipes.models import User
 from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from recipes.models import User
 from .models import Follow
 from .paginators import UserPagination
 from .permissions import OwnerOfAccountOrAdminOrReadOnly

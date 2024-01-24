@@ -1,7 +1,7 @@
 from django.db.models import Exists, OuterRef
 from django_filters import rest_framework as rf
-
 from tags.models import Tag
+
 from .models import Favorite, Recipe, ShoppingCart
 
 
