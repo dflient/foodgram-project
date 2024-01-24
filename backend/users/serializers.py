@@ -1,7 +1,7 @@
-from rest_framework import serializers
 from django.contrib.auth.models import AnonymousUser
-
 from recipes.models import Recipe, User
+from rest_framework import serializers
+
 from .models import Follow
 from .validators import validate_username
 

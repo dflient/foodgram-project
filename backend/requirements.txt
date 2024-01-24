@@ -16,6 +16,7 @@ djangorestframework-simplejwt==5.3.1
 djoser==2.2.2
 dynaconf==3.2.4
 flake8==7.0.0
+flake8-isort==6.0.0
 hvac==2.1.0
 idna==3.6
 isort==5.13.2

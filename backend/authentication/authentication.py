@@ -1,7 +1,6 @@
 from rest_framework.authentication import (TokenAuthentication,
                                            get_authorization_header)
 from rest_framework.exceptions import AuthenticationFailed
-
 from users.models import APIKey
 
 
