@@ -1,12 +1,8 @@
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework import routers
 
-from .views import (
-    UserViewSet,
-    ChangePasswordViewSet,
-    SubscriptionsListViewSet,
-    SubscribeViewSet
-)
+from .views import (ChangePasswordViewSet, SubscribeViewSet,
+                    SubscriptionsListViewSet, UserViewSet)
 
 user_router = routers.DefaultRouter()
 user_router.register(r'', UserViewSet)

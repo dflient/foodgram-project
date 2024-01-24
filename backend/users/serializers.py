@@ -1,13 +1,14 @@
 from rest_framework import serializers
+from django.contrib.auth.models import AnonymousUser
 
-from recipes.models import User, Recipe
+from recipes.models import Recipe, User
 from .models import Follow
 from .validators import validate_username
 
 
 class UserSerializer(serializers.ModelSerializer):
-    is_subscribed = serializers.BooleanField(
-        default=False, required=False
+    is_subscribed = serializers.SerializerMethodField(
+        required=False
     )
 
     class Meta:
@@ -17,17 +18,18 @@ class UserSerializer(serializers.ModelSerializer):
             'first_name', 'last_name', 'is_subscribed'
         ]
 
-    def get_object(self):
-        pk = self.context['users'].kwargs['pk']
-        return User.objects.get(pk=pk)
-
     def get_is_subscribed(self, obj):
         request = self.context['request']
-        following = self.get_object()
+
+        if isinstance(request.user, AnonymousUser):
+            return False
+
         if Follow.objects.filter(
-            user=request.user, following__username=following
+            user=request.user, following__id=obj.id
         ).exists():
             return True
+        else:
+            return False
 
 
 class CreateUserSerializer(serializers.ModelSerializer):
@@ -74,12 +76,21 @@ class ResetPasswordSerializer(serializers.ModelSerializer):
 class RecipesInSubscriptionsSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(read_only=True)
-    image = serializers.CharField(read_only=True)
+    image = serializers.SerializerMethodField(read_only=True)
     cooking_time = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Recipe
         fields = ['id', 'name', 'image', 'cooking_time']
+
+    def get_image(self, obj):
+        request = self.context.get('request')
+        image_url = obj.image.url if obj.image else ''
+
+        if request is not None:
+            return request.build_absolute_uri(image_url)
+
+        return image_url
 
 
 class FollowSerializer(serializers.ModelSerializer):
@@ -102,7 +113,7 @@ class FollowSerializer(serializers.ModelSerializer):
         read_only=True
     )
     recipes = RecipesInSubscriptionsSerializer(
-        many=True, read_only=True, source='following.recipe'
+        many=True, read_only=True, source='following.recipe',
     )
     recipes_count = serializers.SerializerMethodField(
         read_only=True

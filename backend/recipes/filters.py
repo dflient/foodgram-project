@@ -1,8 +1,8 @@
-from django_filters import rest_framework as rf
 from django.db.models import Exists, OuterRef
+from django_filters import rest_framework as rf
 
-from .models import Recipe, ShoppingCart, Favorite
 from tags.models import Tag
+from .models import Favorite, Recipe, ShoppingCart
 
 
 class RecipeFilter(rf.FilterSet):

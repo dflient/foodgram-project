@@ -1,14 +1,14 @@
 import base64
 
-from rest_framework import serializers
+from django.contrib.auth.models import AnonymousUser
 from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
-from django.contrib.auth.models import AnonymousUser
+from rest_framework import serializers
 
-from .models import Recipe, RecipeIngridient, Favorite, RecipeTag, ShoppingCart
-from tags.models import Tag
 from ingridients.models import Ingridient
+from tags.models import Tag
 from users.serializers import UserSerializer
+from .models import Favorite, Recipe, RecipeIngridient, RecipeTag, ShoppingCart
 
 
 class Base64ImageField(serializers.ImageField):
@@ -172,7 +172,26 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients')
+
+        ingredient_names = set()
+        for ingredient in ingredients_data:
+            name = ingredient.get('name')
+            if name in ingredient_names:
+                raise serializers.ValidationError(
+                    'Нельзя использовать один и тот же ингредиент дважды'
+                )
+            ingredient_names.add(name)
+
         tags_data = validated_data.pop('tags')
+
+        tag_names = set()
+        for tag_data in tags_data:
+            if tag_data in tag_names:
+                raise serializers.ValidationError(
+                    'Нельзя использовать один и тот же тег дважды'
+                )
+            tag_names.add(tag_data)
+
         recipe = Recipe.objects.create(**validated_data)
 
         for ingredient_data in ingredients_data:
@@ -191,7 +210,25 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         ingredients_data = validated_data.pop('ingredients', None)
+
+        ingredient_names = set()
+        for ingredient in ingredients_data:
+            name = ingredient.get('name')
+            if name in ingredient_names:
+                raise serializers.ValidationError(
+                    'Нельзя использовать один и тот же ингредиент дважды'
+                )
+            ingredient_names.add(name)
+
         tags_data = validated_data.pop('tags', None)
+
+        tag_names = set()
+        for tag_data in tags_data:
+            if tag_data in tag_names:
+                raise serializers.ValidationError(
+                    'Нельзя использовать один и тот же тег дважды'
+                )
+            tag_names.add(tag_data)
 
         instance.name = validated_data.get('name', instance.name)
         instance.cooking_time = validated_data.get(

@@ -1,20 +1,17 @@
-from rest_framework import viewsets, status, serializers, mixins
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import AnonymousUser
 from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404
+from rest_framework import mixins, serializers, status, viewsets
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 
-from .serializers import (
-    UserSerializer,
-    CreateUserSerializer,
-    ResetPasswordSerializer,
-    FollowSerializer
-)
-from .paginators import UserPagination
-from .permissions import IsAdminGetAndCreateNewUserOnly
-from .models import Follow
 from recipes.models import User
+from .models import Follow
+from .paginators import UserPagination
+from .permissions import OwnerOfAccountOrAdminOrReadOnly
+from .serializers import (CreateUserSerializer, FollowSerializer,
+                          ResetPasswordSerializer, UserSerializer)
 
 REQUIRED_DATA = [
     'email', 'username', 'first_name', 'last_name', 'password'
@@ -37,11 +34,12 @@ class ChangePasswordViewSet(
             new_password = serializer.validated_data['new_password']
             user = request.user
 
-            if not user.check_password(current_password):
-                return Response(
-                    {'current_password': 'Текущий пароль указан неверно.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            if user.password != current_password:
+                if not user.check_password(current_password):
+                    return Response(
+                        {'current_password': 'Текущий пароль указан неверно.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
             if current_password == new_password:
                 return Response(
@@ -70,22 +68,27 @@ class ChangePasswordViewSet(
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAdminGetAndCreateNewUserOnly]
+    permission_classes = [AllowAny]
     pagination_class = UserPagination
+
+    def get_permissions(self):
+        if self.action != 'create':
+            return [OwnerOfAccountOrAdminOrReadOnly()]
+        else:
+            return super().get_permissions()
 
     def retrieve(self, request, *args, **kwargs):
         if kwargs.get('pk') == 'me':
-
-            if request.user.is_anonymous:
+            if isinstance(request.user, AnonymousUser):
                 return Response(
-                    {
-                        'error': 'Доступно только '
-                        'авторизированным пользователям'
-                    },
+                    {'error': 'Вы не авторизованы'},
                     status=status.HTTP_401_UNAUTHORIZED
                 )
 
-            serializer = self.get_serializer(request.user)
+            instance = get_object_or_404(
+                User, username=request.user.username
+            )
+            serializer = self.get_serializer(instance)
 
             return Response(serializer.data)
 
@@ -176,6 +179,9 @@ class SubscribeViewSet(
 
     def create(self, request, *args, **kwargs):
         serializer = FollowSerializer(data=request.data)
+        user = get_object_or_404(
+            User, username=request.user.username
+        )
 
         try:
             following = get_object_or_404(User, id=self.kwargs['pk'])
@@ -188,14 +194,14 @@ class SubscribeViewSet(
         if serializer.is_valid():
 
             if Follow.objects.filter(
-                user=request.user, following__id=following.id
+                user=user, following__id=following.id
             ).exists():
                 return Response(
                     {'error': 'Вы уже подписаны'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            if request.user.id == following.id:
+            if user.id == following.id:
                 return Response(
                     {'error': 'Нельзя подписаться на себя'},
                     status=status.HTTP_400_BAD_REQUEST

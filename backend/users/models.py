@@ -1,11 +1,14 @@
-from django.db import models
+import binascii
+import os
+
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
+from django.db import models
 
+from foodgram_backend.constants import (ADMIN, MAX_API_KEY_LENGHT,
+                                        MAX_EMAIL_LENGHT,
+                                        MAX_USER_FIELDS_LENGHT, USER)
 from .validators import check_name
-from foodgram_backend.constants import (
-    MAX_USER_FIELDS_LENGHT, MAX_EMAIL_LENGHT, ADMIN, USER
-)
 
 USERS_ROLES = [
     (USER, 'Пользователь'),
@@ -80,8 +83,20 @@ class Follow(models.Model):
 
 
 class APIKey(models.Model):
-    key = models.CharField(max_length=100, unique=True)
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    key = models.CharField(
+        max_length=MAX_API_KEY_LENGHT,
+        unique=True, primary_key=True
+    )
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=True)
 
-    def __str__(self):
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = self.genetate_key()
+        return super(APIKey, self).save(*args, **kwargs)
+
+    def genetate_key(self):
+        return binascii.hexlify(os.urandom(20)).decode()
+
+    def __unicode__(self):
         return self.key

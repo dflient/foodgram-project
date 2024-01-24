@@ -1,20 +1,19 @@
 import json
 
 from django.http import HttpResponse
-from rest_framework import filters, viewsets, mixins, status
+from django.shortcuts import get_list_or_404, get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from django.shortcuts import get_object_or_404, get_list_or_404
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
 
-from .models import Recipe, Favorite, ShoppingCart, RecipeIngridient
-from .serializers import (
-    RecipeSerializer, FavoriteSerializer, ShoppingCartSerializer
-)
+from users.permissions import (OwnerOrAdminOrReadOnly,
+                               ShoppingCartOrFavorireOwner)
 from .filters import RecipeFilter
+from .models import Favorite, Recipe, RecipeIngridient, ShoppingCart
 from .paginators import RecipePagination
-from users.permissions import OwnerOrAdminOrReadOnly
+from .serializers import (FavoriteSerializer, RecipeSerializer,
+                          ShoppingCartSerializer)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -145,7 +144,7 @@ class ShoppingCartViewSet(
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([ShoppingCartOrFavorireOwner])
 def download_shopping_cart(request):
     recipes_in_shopping_cart = ShoppingCart.objects.filter(
         owner=request.user

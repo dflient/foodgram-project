@@ -1,11 +1,11 @@
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
 from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
 
+from users.permissions import AdminOrReadOnly
+from .filters import IngredientFilter
 from .models import Ingridient
 from .serializers import IngridientSerializer
-from .filters import IngredientFilter
-from users.permissions import AdminOrReadOnly
 
 
 class IngredientsViewSet(viewsets.ModelViewSet):

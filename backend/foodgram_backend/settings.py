@@ -1,7 +1,6 @@
 import os
-
-from pathlib import Path
 from datetime import timedelta
+from pathlib import Path
 
 from .constants import DEFAULT_PAGE_SIZE
 
@@ -9,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'prompt')
 
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = []
 

@@ -1,15 +1,19 @@
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
+from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
+from rest_framework import status
+from rest_framework.decorators import (api_view, authentication_classes,
+                                       permission_classes)
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
 from recipes.models import User
 from users.models import APIKey
+from .authentication import APIKeyAuthentication
 
 
 @api_view(['POST'])
+@authentication_classes([APIKeyAuthentication])
 @permission_classes([AllowAny])
 def get_token(request):
     '''Представление для полуения токена аутентификации'''
@@ -40,19 +44,7 @@ def get_token(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if user.is_admin is True:
-
-        if user.check_password(password) is False:
-            return Response(
-                data={
-                    'data': 'Пользователя с такой почтой '
-                    'или с таким паролем не существует'
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-    else:
-
+    if user.check_password(password) is False:
         if user.password != password:
             return Response(
                 data={
@@ -63,7 +55,12 @@ def get_token(request):
             )
 
     auth_token = str(AccessToken.for_user(user))
-    APIKey.objects.create(user=user, key=auth_token)
+
+    try:
+        APIKey.objects.create(user=user, key=auth_token)
+    except IntegrityError:
+        APIKey.objects.filter(user=user).delete()
+        APIKey.objects.create(user=user, key=auth_token)
 
     return Response(
         data={'auth_token': auth_token},
@@ -72,6 +69,7 @@ def get_token(request):
 
 
 @api_view(['POST'])
+@authentication_classes([APIKeyAuthentication])
 @permission_classes([IsAuthenticated])
 def logout(request):
     '''Представление для удаление токена и выхода пользователя'''

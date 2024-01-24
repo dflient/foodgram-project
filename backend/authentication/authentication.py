@@ -1,30 +1,57 @@
-from rest_framework.authentication import BaseAuthentication
+from rest_framework.authentication import (TokenAuthentication,
+                                           get_authorization_header)
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework.permissions import AllowAny, SAFE_METHODS
 
 from users.models import APIKey
 
 
-class APIKeyAuthentication(BaseAuthentication):
-    def authenticate(self, request):
-        if isinstance(
-            request._request.resolver_match.func.cls.permission_classes, list
-        ) and (
-            AllowAny in (
-                request._request.resolver_match.func.cls.permission_classes
-            )
-        ) or request.method in SAFE_METHODS:
+class APIKeyAuthentication(TokenAuthentication):
+
+    def get_token_from_auth_header(self, auth):
+        auth = auth.split()
+        if not auth or auth[0].lower() != b'token':
             return None
 
-        api_key = request.META.get('HTTP_AUTHORIZATION')
-        api_key = api_key = api_key.replace('Token ', '')
-
-        if not api_key:
-            raise AuthenticationFailed('API Key is required.')
+        if len(auth) == 1:
+            raise AuthenticationFailed(
+                'Invalid token header.'
+            )
+        elif len(auth) > 2:
+            raise AuthenticationFailed(
+                'Invalid token header'
+            )
 
         try:
-            api_key_obj = APIKey.objects.get(key=api_key)
-        except APIKey.DoesNotExist:
-            raise AuthenticationFailed('Invalid API Key.')
+            return auth[1].decode()
+        except UnicodeError:
+            raise AuthenticationFailed(
+                'Invalid token header'
+            )
 
-        return (api_key_obj.user, None)
+    def authenticate(self, request):
+        auth = get_authorization_header(request)
+        token = self.get_token_from_auth_header(auth)
+
+        if not token:
+            token = request.GET.get(
+                'api-key',
+                request.POST.get('api-key', None)
+            )
+
+        if token:
+            return self.authenticate_credentials(token)
+
+    def authenticate_credentials(self, key):
+        try:
+            token = APIKey.objects.get(key=key)
+        except APIKey.DoesNotExist:
+            raise AuthenticationFailed('Invalid API Key')
+
+        if not token.is_active:
+            raise AuthenticationFailed(
+                'API Key inactive or deleted'
+            )
+
+        user = token.user
+
+        return (user, token)
