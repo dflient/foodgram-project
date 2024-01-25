@@ -2,5 +2,5 @@
 Домен - https://isfoodgram.hopto.org/
 Логин - Superuser
 Пароль - 51nersineR
--
+
 Автор проекта - Даниил Пастунов
