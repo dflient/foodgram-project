@@ -19,7 +19,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'corsheaders',
     'recipes',
     'tags',
     'ingridients',
@@ -33,7 +32,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -123,9 +121,3 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('API-Key',),
     'BLACKLIST_AFTER_ROTATION': True,
 }
-
-CORS_ORIGIN_WHITELIST = [
-    'http://localhost:3000'
-]
-
-CSRF_TRUSTED_ORIGINS = ['https://isfoodgram.hopto.org']
