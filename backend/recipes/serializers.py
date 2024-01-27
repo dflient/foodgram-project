@@ -175,7 +175,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
         ingredient_names = set()
         for ingredient in ingredients_data:
-            name = ingredient.get('name')
+            name = ingredient.get('id')
             if name in ingredient_names:
                 raise serializers.ValidationError(
                     'Нельзя использовать один и тот же ингредиент дважды'
@@ -213,7 +213,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
         ingredient_names = set()
         for ingredient in ingredients_data:
-            name = ingredient.get('name')
+            name = ingredient.get('id')
             if name in ingredient_names:
                 raise serializers.ValidationError(
                     'Нельзя использовать один и тот же ингредиент дважды'
@@ -238,20 +238,21 @@ class RecipeSerializer(serializers.ModelSerializer):
 
         if ingredients_data:
 
-            for ingredient_data in ingredients_data:
-                ingredient_id = ingredient_data['id']
-                amount = ingredient_data['amount']
-                RecipeIngridient.objects.create(
-                    recipe=instance, ingredient=ingredient_id, amount=amount
-                )
+            for ingredient in ingredients_data:
+                ingredient_name = ingredient['id']
+                amount = ingredient['amount']
+                try:
+                    RecipeIngridient.objects.create(
+                        recipe=instance, ingredient=ingredient_name, amount=amount
+                    )
+                except:
+                    RecipeIngridient.objects.filter(
+                        recipe=instance, ingredient=ingredient_name, amount=amount
+                    ).delete()
+                    RecipeIngridient.objects.create(
+                        recipe=instance, ingredient=ingredient_name, amount=amount
+                    )
 
-        if tags_data:
-            instance.tags.clear()
-
-            for tag in tags_data:
-                RecipeTag.objects.create(
-                    recipe=instance, tag=tag
-                )
 
         return instance
 
@@ -271,11 +272,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                     )
                 )
             except Exception as error:
-
-                raise serializers.ValidationError(
-                    f'Нельзя использвать один и тот же ингредиент дважды - '
-                    f'{error}'
-                )
+                pass
 
         recipe_obj['ingredients'] = [
             {
