@@ -243,16 +243,21 @@ class RecipeSerializer(serializers.ModelSerializer):
                 amount = ingredient['amount']
                 try:
                     RecipeIngridient.objects.create(
-                        recipe=instance, ingredient=ingredient_name, amount=amount
+                        recipe=instance,
+                        ingredient=ingredient_name,
+                        amount=amount
                     )
-                except:
+                except Exception:
                     RecipeIngridient.objects.filter(
-                        recipe=instance, ingredient=ingredient_name, amount=amount
+                        recipe=instance,
+                        ingredient=ingredient_name,
+                        amount=amount
                     ).delete()
                     RecipeIngridient.objects.create(
-                        recipe=instance, ingredient=ingredient_name, amount=amount
+                        recipe=instance,
+                        ingredient=ingredient_name,
+                        amount=amount
                     )
-
 
         return instance
 
@@ -271,7 +276,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                         ingredient__id=ingridient.get('id')
                     )
                 )
-            except Exception as error:
+            except Exception:
                 pass
 
         recipe_obj['ingredients'] = [
