@@ -208,61 +208,44 @@ class RecipeSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        ingredients_data = validated_data.pop('ingredients')
-        ingredients_list = []
+        self.update_ingredients(instance, validated_data)
+        self.update_tags(instance, validated_data)
+        self.remove_unused_tags(instance, validated_data)
+        return instance
 
+    def update_ingredients(self, instance, validated_data):
+        ingredients_data = validated_data.pop('ingredients', [])
+        ingredients_list = []
         for ingredient in ingredients_data:
             name = ingredient.get('id')
             amount = ingredient.get('amount')
-
             if name in ingredients_list:
-                raise serializers.ValidationError(
-                    'Нельзя использовать один ингредиент дважды'
-                )
+                raise serializers.ValidationError('Нельзя использовать один ингредиент дважды')
             ingredients_list.append((name, amount))
-
         for name, amount in ingredients_list:
             try:
-                RecipeIngridient.objects.create(
-                    recipe=instance.id, ingredient=name, amount=amount
-                )
+                RecipeIngridient.objects.create(recipe=instance.id, ingredient=name, amount=amount)
             except Exception:
-                RecipeIngridient.objects.filter(
-                    recipe_id=instance.id, ingredient=name, amount=amount
-                ).delete()
-                RecipeIngridient.objects.create(
-                    recipe_id=instance.id, ingredient=name, amount=amount
-                )
+                RecipeIngridient.objects.filter(recipe_id=instance.id, ingredient=name, amount=amount).delete()
+                RecipeIngridient.objects.create(recipe_id=instance.id, ingredient=name, amount=amount)
 
-        tags_data = validated_data.pop('tags')
+    def update_tags(self, instance, validated_data):
+        tags_data = validated_data.pop('tags', [])
         tags_list = []
-
         for tag in tags_data:
             if tag in tags_list:
-                raise serializers.ValidationError(
-                    'Нельзя использовать один тег дважды'
-                )
+                raise serializers.ValidationError('Нельзя использовать один тег дважды')
             tags_list.append(tag)
-
         for tag in tags_list:
-            if not RecipeTag.objects.filter(
-                recipe_id=instance.id, tag=tag
-            ).exists():
-                RecipeTag.objects.create(
-                    recipe_id=instance.id, tag=tag
-                )
+            if not RecipeTag.objects.filter(recipe_id=instance.id, tag=tag).exists():
+                RecipeTag.objects.create(recipe_id=instance.id, tag=tag)
 
-        tags_in_recipe = RecipeTag.objects.filter(
-            recipe_id=instance.id
-        )
-
+    def remove_unused_tags(self, instance, validated_data):
+        tags_data = validated_data.get('tags', [])
+        tags_in_recipe = RecipeTag.objects.filter(recipe_id=instance.id)
         for tag in tags_in_recipe:
             if tag.tag not in tags_data:
-                RecipeTag.objects.get(
-                    recipe_id=instance.id, tag=tag.tag
-                ).delete()
-
-        return instance
+                RecipeTag.objects.get(recipe_id=instance.id, tag=tag.tag).delete()
 
     def to_representation(self, instance):
         recipe_obj = super().to_representation(instance)
