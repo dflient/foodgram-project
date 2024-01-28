@@ -11,7 +11,7 @@ from .serializers import IngridientSerializer
 class IngredientsViewSet(viewsets.ModelViewSet):
     queryset = Ingridient.objects.all()
     serializer_class = IngridientSerializer
-    permission_classes = [AdminOrReadOnly,]
+    permission_classes = [AdminOrReadOnly, ]
     filter_backends = (DjangoFilterBackend,)
     filterset_class = IngredientFilter
 

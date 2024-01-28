@@ -2,7 +2,6 @@ import base64
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.base import ContentFile
-from django.shortcuts import get_object_or_404
 from ingridients.models import Ingridient
 from rest_framework import serializers
 from tags.models import Tag
@@ -209,55 +208,59 @@ class RecipeSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        ingredients_data = validated_data.pop('ingredients', None)
+        ingredients_data = validated_data.pop('ingredients')
+        ingredients_list = []
 
-        ingredient_names = set()
         for ingredient in ingredients_data:
             name = ingredient.get('id')
-            if name in ingredient_names:
+            amount = ingredient.get('amount')
+
+            if name in ingredients_list:
                 raise serializers.ValidationError(
-                    'Нельзя использовать один и тот же ингредиент дважды'
+                    'Нельзя использовать один ингредиент дважды'
                 )
-            ingredient_names.add(name)
+            ingredients_list.append((name, amount))
 
-        tags_data = validated_data.pop('tags', None)
+        for name, amount in ingredients_list:
+            try:
+                RecipeIngridient.objects.create(
+                    recipe=instance.id, ingredient=name, amount=amount
+                )
+            except Exception:
+                RecipeIngridient.objects.filter(
+                    recipe_id=instance.id, ingredient=name, amount=amount
+                ).delete()
+                RecipeIngridient.objects.create(
+                    recipe_id=instance.id, ingredient=name, amount=amount
+                )
 
-        tag_names = set()
-        for tag_data in tags_data:
-            if tag_data in tag_names:
+        tags_data = validated_data.pop('tags')
+        tags_list = []
+
+        for tag in tags_data:
+            if tag in tags_list:
                 raise serializers.ValidationError(
-                    'Нельзя использовать один и тот же тег дважды'
+                    'Нельзя использовать один тег дважды'
                 )
-            tag_names.add(tag_data)
+            tags_list.append(tag)
 
-        instance.name = validated_data.get('name', instance.name)
-        instance.cooking_time = validated_data.get(
-            'cooking_time', instance.cooking_time
+        for tag in tags_list:
+            if not RecipeTag.objects.filter(
+                recipe_id=instance.id, tag=tag
+            ).exists():
+                RecipeTag.objects.create(
+                    recipe_id=instance.id, tag=tag
+                )
+
+        tags_in_recipe = RecipeTag.objects.filter(
+            recipe_id=instance.id
         )
-        instance.save()
 
-        if ingredients_data:
-
-            for ingredient in ingredients_data:
-                ingredient_name = ingredient['id']
-                amount = ingredient['amount']
-                try:
-                    RecipeIngridient.objects.create(
-                        recipe=instance,
-                        ingredient=ingredient_name,
-                        amount=amount
-                    )
-                except Exception:
-                    RecipeIngridient.objects.filter(
-                        recipe=instance,
-                        ingredient=ingredient_name,
-                        amount=amount
-                    ).delete()
-                    RecipeIngridient.objects.create(
-                        recipe=instance,
-                        ingredient=ingredient_name,
-                        amount=amount
-                    )
+        for tag in tags_in_recipe:
+            if tag.tag not in tags_data:
+                RecipeTag.objects.get(
+                    recipe_id=instance.id, tag=tag.tag
+                ).delete()
 
         return instance
 
@@ -268,16 +271,11 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingridients_list = []
 
         for ingridient in ingridients:
-
-            try:
-                ingridients_list.append(
-                    get_object_or_404(
-                        RecipeIngridient, recipe__id=recipe_obj.get('id'),
-                        ingredient__id=ingridient.get('id')
-                    )
-                )
-            except Exception:
-                pass
+            ingredint_obj = RecipeIngridient.objects.get(
+                recipe_id=recipe_obj.get('id'),
+                ingredient_id=ingridient.get('id')
+            )
+            ingridients_list.append(ingredint_obj)
 
         recipe_obj['ingredients'] = [
             {
@@ -291,20 +289,11 @@ class RecipeSerializer(serializers.ModelSerializer):
         tags_list = []
 
         for tag in tags:
-
-            try:
-                tags_list.append(
-                    get_object_or_404(
-                        RecipeTag, recipe__id=recipe_obj.get('id'),
-                        tag__id=tag
-                    )
-                )
-            except Exception as error:
-
-                raise serializers.ValidationError(
-                    f'Нельзя использвать один и тот же ингредиент дважды - '
-                    f'{error}'
-                )
+            tag_obj = RecipeTag.objects.get(
+                recipe_id=recipe_obj.get('id'),
+                tag_id=tag
+            )
+            tags_list.append(tag_obj)
 
         recipe_obj['tags'] = [
             {

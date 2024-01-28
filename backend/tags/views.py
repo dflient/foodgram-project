@@ -9,7 +9,7 @@ from .serializers import TagSerializer
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = [AdminOrReadOnly,]
+    permission_classes = [AdminOrReadOnly, ]
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
