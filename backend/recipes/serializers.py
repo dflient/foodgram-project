@@ -1,24 +1,11 @@
-import base64
-
 from django.contrib.auth.models import AnonymousUser
-from django.core.files.base import ContentFile
-from ingridients.models import Ingridient
+from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
+
+from ingridients.models import Ingridient
 from tags.models import Tag
 from users.serializers import UserSerializer
-
 from .models import Favorite, Recipe, RecipeIngridient, RecipeTag, ShoppingCart
-
-
-class Base64ImageField(serializers.ImageField):
-    def to_internal_value(self, data):
-        if isinstance(data, str) and data.startswith('data:image'):
-            format, imgstr = data.split(';base64,')
-            ext = format.split('/')[-1]
-
-            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
-
-        return super().to_internal_value(data)
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
@@ -112,9 +99,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         ]
 
         for field in required_fields:
-
             if field not in attrs:
-
                 raise serializers.ValidationError(
                     f'Поле {field} не было указано'
                 )
@@ -123,22 +108,17 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def validate_tags(self, value):
         if len(value) == 0:
-
             raise serializers.ValidationError
 
         return value
 
     def validate_ingredients(self, value):
         if len(value) < 1:
-
             for item in value:
                 amount = item.get('amount')
-
         else:
             amount = value[0]['amount']
-
         if len(value) == 0 or amount < 1:
-
             raise serializers.ValidationError
 
         return value
@@ -149,12 +129,9 @@ class RecipeSerializer(serializers.ModelSerializer):
         if isinstance(request.user, AnonymousUser):
             return False
 
-        if Favorite.objects.filter(
+        return Favorite.objects.filter(
             recipe=instance.id, owner=request.user
-        ).exists():
-            return True
-        else:
-            return False
+        ).exists()
 
     def get_is_in_shopping_cart(self, instance):
         request = self.context['request']
@@ -162,12 +139,9 @@ class RecipeSerializer(serializers.ModelSerializer):
         if isinstance(request.user, AnonymousUser):
             return False
 
-        if ShoppingCart.objects.filter(
+        return ShoppingCart.objects.filter(
             recipe=instance.id, owner=request.user
-        ).exists():
-            return True
-        else:
-            return False
+        ).exists()
 
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients')

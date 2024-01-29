@@ -1,14 +1,15 @@
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
-from recipes.models import User
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.decorators import (api_view, authentication_classes,
                                        permission_classes)
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
-from users.models import APIKey
 
+from foodgram_backend.constants import MAX_API_KEY_LENGHT
+from users.models import CustomUser
 from .authentication import APIKeyAuthentication
 
 
@@ -34,7 +35,7 @@ def get_token(request):
         )
 
     try:
-        user = get_object_or_404(User, email=email)
+        user = get_object_or_404(CustomUser, email=email)
     except Exception as error:
         return Response(
             data={
@@ -54,13 +55,13 @@ def get_token(request):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    auth_token = str(AccessToken.for_user(user))
+    auth_token = str(AccessToken.for_user(user))[:MAX_API_KEY_LENGHT]
 
     try:
-        APIKey.objects.create(user=user, key=auth_token)
+        Token.objects.create(user=user, key=auth_token)
     except IntegrityError:
-        APIKey.objects.filter(user=user).delete()
-        APIKey.objects.create(user=user, key=auth_token)
+        Token.objects.filter(user=user).delete()
+        Token.objects.create(user=user, key=auth_token)
 
     return Response(
         data={'auth_token': auth_token},
@@ -93,7 +94,7 @@ def logout(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        get_object_or_404(APIKey, user=request.user).delete()
+        get_object_or_404(Token, user=request.user).delete()
 
         return Response(
             {'message': 'Вы успешно вышли'},

@@ -1,7 +1,9 @@
 from rest_framework.authentication import (TokenAuthentication,
                                            get_authorization_header)
+from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import AuthenticationFailed
-from users.models import APIKey
+
+from foodgram_backend.constants import MAX_API_KEY_LENGHT
 
 
 class APIKeyAuthentication(TokenAuthentication):
@@ -41,15 +43,11 @@ class APIKeyAuthentication(TokenAuthentication):
             return self.authenticate_credentials(token)
 
     def authenticate_credentials(self, key):
-        try:
-            token = APIKey.objects.get(key=key)
-        except APIKey.DoesNotExist:
-            raise AuthenticationFailed('Invalid API Key')
 
-        if not token.is_active:
-            raise AuthenticationFailed(
-                'API Key inactive or deleted'
-            )
+        try:
+            token = Token.objects.get(key=key[:MAX_API_KEY_LENGHT])
+        except Token.DoesNotExist:
+            raise AuthenticationFailed('Invalid API Key')
 
         user = token.user
 

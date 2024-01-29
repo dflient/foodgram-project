@@ -1,17 +1,16 @@
-from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from django.db import models
+
 from foodgram_backend.constants import (MAX_RECIPE_NAME_LENGHT,
                                         MIN_VALUE_VALIDATOR)
 from ingridients.models import Ingridient
 from tags.models import Tag
-
-User = get_user_model()
+from users.models import CustomUser
 
 
 class Recipe(models.Model):
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE,
+        CustomUser, on_delete=models.CASCADE,
         verbose_name='Автор публикации',
         related_name='recipe'
     )
@@ -46,8 +45,8 @@ class Recipe(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "Рецепт"
-        verbose_name_plural = "Рецепты"
+        verbose_name = 'Рецепт'
+        verbose_name_plural = 'Рецепты'
 
 
 class RecipeTag(models.Model):
@@ -64,8 +63,8 @@ class RecipeTag(models.Model):
         return f'{self.tag} - {self.recipe}'
 
     class Meta:
-        verbose_name = "Тег рецепта"
-        verbose_name_plural = "Тег рецептов"
+        verbose_name = 'Тег рецепта'
+        verbose_name_plural = 'Тег рецептов'
 
 
 class RecipeIngridient(models.Model):
@@ -88,46 +87,36 @@ class RecipeIngridient(models.Model):
         )
 
     class Meta:
-        verbose_name = "Ингриддиент по рецепту"
-        verbose_name_plural = "Ингриддиенты по рецептам"
+        verbose_name = 'Ингриддиент по рецепту'
+        verbose_name_plural = 'Ингриддиенты по рецептам'
 
 
-class Favorite(models.Model):
+class FavoriteAndShoppingCartBase(models.Model):
     recipe = models.ForeignKey(
         Recipe, on_delete=models.CASCADE,
         verbose_name='Рецепт'
     )
     owner = models.ForeignKey(
-        User, on_delete=models.CASCADE,
-        verbose_name='Владелец списка избранных рецептов'
+        CustomUser, on_delete=models.CASCADE,
+        verbose_name='Владелец'
     )
 
-    class Meta:
-        verbose_name = "Избранный рецепт"
-        verbose_name_plural = "Избранные рецепты"
 
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        self.recipe.in_favorite_count += 1
-        self.recipe.save()
+class Favorite(FavoriteAndShoppingCartBase):
+
+    class Meta:
+        verbose_name = 'Избранный рецепт'
+        verbose_name_plural = 'Избранные рецепты'
 
     def __str__(self):
         return f'{self.owner} - {self.recipe.name}'
 
 
-class ShoppingCart(models.Model):
-    recipe = models.ForeignKey(
-        Recipe, on_delete=models.CASCADE,
-        verbose_name='Рецепт'
-    )
-    owner = models.ForeignKey(
-        User, on_delete=models.CASCADE,
-        verbose_name='Владелец списка покупок'
-    )
+class ShoppingCart(FavoriteAndShoppingCartBase):
 
     class Meta:
-        verbose_name = "Список покупок"
-        verbose_name_plural = "Списки покупок"
+        verbose_name = 'Список покупок'
+        verbose_name_plural = 'Списки покупок'
 
     def __str__(self):
         return f'{self.owner} - {self.recipe.name}'

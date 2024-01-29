@@ -2,12 +2,11 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404
-from recipes.models import User
 from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Follow
+from .models import CustomUser, Follow
 from .paginators import UserPagination
 from .permissions import OwnerOfAccountOrAdminOrReadOnly
 from .serializers import (CreateUserSerializer, FollowSerializer,
@@ -21,7 +20,7 @@ REQUIRED_DATA = [
 class ChangePasswordViewSet(
     mixins.CreateModelMixin, viewsets.GenericViewSet
 ):
-    queryset = User.objects.all()
+    queryset = CustomUser.objects.all()
     serializer_class = ResetPasswordSerializer
     permission_classes = [IsAuthenticated]
     http_method_names = ['post']
@@ -66,7 +65,7 @@ class ChangePasswordViewSet(
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
+    queryset = CustomUser.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
     pagination_class = UserPagination
@@ -86,13 +85,13 @@ class UserViewSet(viewsets.ModelViewSet):
                 )
 
             instance = get_object_or_404(
-                User, username=request.user.username
+                CustomUser, username=request.user.username
             )
             serializer = self.get_serializer(instance)
 
             return Response(serializer.data)
 
-        instance = get_object_or_404(User, pk=kwargs.get('pk'))
+        instance = get_object_or_404(CustomUser, pk=kwargs.get('pk'))
         serializer = self.get_serializer(instance)
 
         return Response(serializer.data)
@@ -180,11 +179,11 @@ class SubscribeViewSet(
     def create(self, request, *args, **kwargs):
         serializer = FollowSerializer(data=request.data)
         user = get_object_or_404(
-            User, username=request.user.username
+            CustomUser, username=request.user.username
         )
 
         try:
-            following = get_object_or_404(User, id=self.kwargs['pk'])
+            following = get_object_or_404(CustomUser, id=self.kwargs['pk'])
         except Exception:
             return Response(
                 {'error': 'Такого пользователя не существует'},
@@ -208,7 +207,8 @@ class SubscribeViewSet(
                 )
 
             serializer.save(
-                user=request.user, following=User.objects.get(id=following.id)
+                user=request.user,
+                following=CustomUser.objects.get(id=following.id)
             )
 
             recipes_limit = int(request.GET.get('recipes_limit', 0))
@@ -223,7 +223,7 @@ class SubscribeViewSet(
 
     def destroy(self, request, *args, **kwargs):
         try:
-            following = get_object_or_404(User, id=self.kwargs['pk'])
+            following = get_object_or_404(CustomUser, id=self.kwargs['pk'])
         except Exception:
             return Response(
                 {'error': 'Такого пользователя не существует'},

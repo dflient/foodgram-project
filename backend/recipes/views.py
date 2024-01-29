@@ -60,6 +60,8 @@ class FavoriteViewSet(
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+            recipe.in_favorite_count += 1
+            recipe.save()
             serializer.save(
                 owner=request.user, recipe=Recipe.objects.get(id=recipe.id)
             )
@@ -75,6 +77,9 @@ class FavoriteViewSet(
 
         if favorite_obj.exists():
             favorite_obj.delete()
+            recipe = get_object_or_404(Recipe, id=self.kwargs['pk'])
+            recipe.in_favorite_count -= 1
+            recipe.save()
 
             return Response(
                 {'success': 'Рецепт успешно удалён из избранных'},

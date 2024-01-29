@@ -1,4 +1,5 @@
 from django.db import models
+
 from foodgram_backend.constants import MAX_TAGS_AND_INGS_FIELDS_LENGHT
 
 
@@ -18,5 +19,5 @@ class Ingridient(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "Ингридиент"
-        verbose_name_plural = "Ингридиенты"
+        verbose_name = 'Ингридиент'
+        verbose_name_plural = 'Ингридиенты'

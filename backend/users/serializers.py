@@ -1,8 +1,9 @@
 from django.contrib.auth.models import AnonymousUser
-from recipes.models import Recipe, User
 from rest_framework import serializers
 
-from .models import Follow
+from foodgram_backend.constants import MAX_USER_FIELDS_LENGHT
+from recipes.models import Recipe
+from .models import CustomUser, Follow
 from .validators import validate_username
 
 
@@ -12,7 +13,7 @@ class UserSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = User
+        model = CustomUser
         fields = [
             'email', 'id', 'username',
             'first_name', 'last_name', 'is_subscribed'
@@ -53,7 +54,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
         return validate_username(value)
 
     class Meta:
-        model = User
+        model = CustomUser
         fields = [
             'email', 'id', 'username',
             'first_name', 'last_name', 'password'
@@ -62,14 +63,16 @@ class CreateUserSerializer(serializers.ModelSerializer):
 
 class ResetPasswordSerializer(serializers.ModelSerializer):
     current_password = serializers.CharField(
-        max_length=150, required=True, write_only=True
+        max_length=MAX_USER_FIELDS_LENGHT,
+        required=True, write_only=True
     )
     new_password = serializers.CharField(
-        max_length=150, required=True, write_only=True
+        max_length=MAX_USER_FIELDS_LENGHT,
+        required=True, write_only=True
     )
 
     class Meta:
-        model = User
+        model = CustomUser
         fields = ['current_password', 'new_password']
 
 

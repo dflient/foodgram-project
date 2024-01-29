@@ -1,7 +1,8 @@
 from django.http import HttpResponse
-from foodgram_backend.constants import ADMIN
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.permissions import SAFE_METHODS, BasePermission
+
+from foodgram_backend.constants import ADMIN
 
 
 class IsAdminOrSuperuser(BasePermission):

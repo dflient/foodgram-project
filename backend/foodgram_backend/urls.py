@@ -2,10 +2,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+from rest_framework import routers
+
 from ingridients.views import IngredientsViewSet
 from recipes.views import (FavoriteViewSet, RecipeViewSet, ShoppingCartViewSet,
                            download_shopping_cart)
-from rest_framework import routers
 from tags.views import TagViewSet
 
 router = routers.DefaultRouter()
