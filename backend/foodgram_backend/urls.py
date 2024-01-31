@@ -4,10 +4,10 @@ from django.contrib import admin
 from django.urls import include, path
 from rest_framework import routers
 
-from ingridients.views import IngredientsViewSet
-from recipes.views import (FavoriteViewSet, RecipeViewSet, ShoppingCartViewSet,
-                           download_shopping_cart)
-from tags.views import TagViewSet
+from recipes.views import (
+    FavoriteViewSet, RecipeViewSet, ShoppingCartViewSet,
+    TagViewSet, IngredientsViewSet, download_shopping_cart
+)
 
 router = routers.DefaultRouter()
 router.register(r'recipes', RecipeViewSet)

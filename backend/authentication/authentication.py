@@ -45,7 +45,7 @@ class APIKeyAuthentication(TokenAuthentication):
     def authenticate_credentials(self, key):
 
         try:
-            token = Token.objects.get(key=key[:MAX_API_KEY_LENGHT])
+            token = Token.objects.get(key=key[MAX_API_KEY_LENGHT:])
         except Token.DoesNotExist:
             raise AuthenticationFailed('Invalid API Key')
 

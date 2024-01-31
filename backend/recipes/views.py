@@ -4,16 +4,47 @@ from django.http import HttpResponse
 from django.shortcuts import get_list_or_404, get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, status, viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from users.permissions import (OwnerOrAdminOrReadOnly,
-                               ShoppingCartOrFavorireOwner)
 
-from .filters import RecipeFilter
-from .models import Favorite, Recipe, RecipeIngridient, ShoppingCart
+from users.permissions import IsAdminOrAuthorOrReadOnly
+from .filters import RecipeFilter, IngredientFilter
+from .models import (
+    Favorite, Recipe, RecipeIngridient,
+    ShoppingCart, Ingridient, Tag
+)
 from .paginators import RecipePagination
-from .serializers import (FavoriteSerializer, RecipeSerializer,
-                          ShoppingCartSerializer)
+from .serializers import (
+    FavoriteSerializer, RecipeSerializer,
+    ShoppingCartSerializer, IngridientSerializer,
+    TagSerializer
+)
+
+
+class TagViewSet(viewsets.ModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    http_method_names = ['get', ]
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+
+        return Response(serializer.data)
+
+
+class IngredientsViewSet(viewsets.ModelViewSet):
+    queryset = Ingridient.objects.all()
+    serializer_class = IngridientSerializer
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
+    http_method_names = ['get', ]
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+
+        return Response(serializer.data)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -22,7 +53,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend, filters.OrderingFilter)
     filterset_class = RecipeFilter
     pagination_class = RecipePagination
-    permission_classes = (OwnerOrAdminOrReadOnly,)
+    permission_classes = (IsAdminOrAuthorOrReadOnly,)
     ordering = ('-pub_date',)
     http_method_names = ['get', 'post', 'patch', 'delete', 'head']
 
@@ -53,17 +84,15 @@ class FavoriteViewSet(
         if serializer.is_valid():
 
             if Favorite.objects.filter(
-                recipe__id=recipe_id, owner=request.user
+                recipe__id=recipe_id, user=request.user
             ).exists():
                 return Response(
                     {'error': 'Вы уже добавили этот рецепт в избранное'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            recipe.in_favorite_count += 1
-            recipe.save()
             serializer.save(
-                owner=request.user, recipe=Recipe.objects.get(id=recipe.id)
+                user=request.user, recipe=Recipe.objects.get(id=recipe.id)
             )
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -72,14 +101,11 @@ class FavoriteViewSet(
 
     def destroy(self, request, *args, **kwargs):
         favorite_obj = Favorite.objects.filter(
-            recipe__id=self.kwargs['pk'], owner=request.user
+            recipe__id=self.kwargs['pk'], user=request.user
         )
 
         if favorite_obj.exists():
             favorite_obj.delete()
-            recipe = get_object_or_404(Recipe, id=self.kwargs['pk'])
-            recipe.in_favorite_count -= 1
-            recipe.save()
 
             return Response(
                 {'success': 'Рецепт успешно удалён из избранных'},
@@ -114,7 +140,7 @@ class ShoppingCartViewSet(
         if serializer.is_valid():
 
             if ShoppingCart.objects.filter(
-                recipe__id=recipe_id, owner=request.user
+                recipe__id=recipe_id, user=request.user
             ).exists():
                 return Response(
                     {'error': 'Вы уже добавили этот рецепт в список покупок'},
@@ -122,7 +148,7 @@ class ShoppingCartViewSet(
                 )
 
             serializer.save(
-                owner=request.user, recipe=Recipe.objects.get(id=recipe.id)
+                user=request.user, recipe=Recipe.objects.get(id=recipe.id)
             )
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -131,7 +157,7 @@ class ShoppingCartViewSet(
 
     def destroy(self, request, *args, **kwargs):
         shopping_cart_obj = ShoppingCart.objects.filter(
-            recipe__id=self.kwargs['pk'], owner=request.user
+            recipe__id=self.kwargs['pk'], user=request.user
         )
 
         if shopping_cart_obj.exists():
@@ -149,10 +175,9 @@ class ShoppingCartViewSet(
 
 
 @api_view(['GET'])
-@permission_classes([ShoppingCartOrFavorireOwner])
 def download_shopping_cart(request):
     recipes_in_shopping_cart = ShoppingCart.objects.filter(
-        owner=request.user
+        user=request.user
     )
     ingredients_id = recipes_in_shopping_cart.values('recipe__ingredients')
     recipes_id = recipes_in_shopping_cart.values('recipe')

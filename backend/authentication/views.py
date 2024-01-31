@@ -55,13 +55,14 @@ def get_token(request):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    auth_token = str(AccessToken.for_user(user))[:MAX_API_KEY_LENGHT]
+    auth_token = str(AccessToken.for_user(user))
+    token = auth_token[MAX_API_KEY_LENGHT:]
 
     try:
-        Token.objects.create(user=user, key=auth_token)
+        Token.objects.create(user=user, key=token)
     except IntegrityError:
         Token.objects.filter(user=user).delete()
-        Token.objects.create(user=user, key=auth_token)
+        Token.objects.create(user=user, key=token)
 
     return Response(
         data={'auth_token': auth_token},

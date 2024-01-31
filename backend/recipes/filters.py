@@ -1,8 +1,17 @@
 from django.db.models import Exists, OuterRef
 from django_filters import rest_framework as rf
 
-from tags.models import Tag
-from .models import Favorite, Recipe, ShoppingCart
+from .models import Favorite, Recipe, ShoppingCart, Ingridient, Tag
+
+
+class IngredientFilter(rf.FilterSet):
+    name = rf.CharFilter(
+        lookup_expr='icontains', field_name='name'
+    )
+
+    class Meta:
+        model = Ingridient
+        fields = ('name',)
 
 
 class RecipeFilter(rf.FilterSet):
@@ -17,26 +26,20 @@ class RecipeFilter(rf.FilterSet):
 
     def filter_is_in_shopping_cart(self, queryset, name, value):
         if value:
-
             return queryset.filter(
                 Exists(ShoppingCart.objects.filter(recipe=OuterRef('pk')))
             )
-
         else:
-
             return queryset.exclude(
                 Exists(ShoppingCart.objects.filter(recipe=OuterRef('pk')))
             )
 
     def filter_is_in_favorite(self, queryset, name, value):
         if value:
-
             return queryset.filter(
                 Exists(Favorite.objects.filter(recipe=OuterRef('pk')))
             )
-
         else:
-
             return queryset.exclude(
                 Exists(Favorite.objects.filter(recipe=OuterRef('pk')))
             )

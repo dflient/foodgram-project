@@ -1,11 +1,49 @@
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
-from foodgram_backend.constants import (MAX_RECIPE_NAME_LENGHT,
-                                        MIN_VALUE_VALIDATOR)
-from ingridients.models import Ingridient
-from tags.models import Tag
+from foodgram_backend.constants import (
+    MAX_RECIPE_NAME_LENGHT,
+    MIN_VALUE_VALIDATOR, MAX_VALUE_VALIDATOR,
+    MAX_TAGS_AND_INGS_FIELDS_LENGHT
+)
 from users.models import CustomUser
+
+
+class Tag(models.Model):
+    name = models.CharField(
+        max_length=MAX_TAGS_AND_INGS_FIELDS_LENGHT, verbose_name='Название'
+    )
+    color = models.CharField(
+        max_length=MAX_TAGS_AND_INGS_FIELDS_LENGHT, verbose_name='Цветовой код'
+    )
+    slug = models.SlugField(unique=True, verbose_name='Уникальное имя')
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = 'Тег'
+        verbose_name_plural = 'Теги'
+
+
+class Ingridient(models.Model):
+    name = models.CharField(
+        max_length=MAX_TAGS_AND_INGS_FIELDS_LENGHT, verbose_name='Название'
+    )
+    measurement_unit = models.CharField(
+        max_length=MAX_TAGS_AND_INGS_FIELDS_LENGHT,
+        verbose_name='Единица измерения'
+    )
+    amount = models.FloatField(
+        verbose_name='Количество', blank=True, null=True
+    )
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = 'Ингридиент'
+        verbose_name_plural = 'Ингридиенты'
 
 
 class Recipe(models.Model):
@@ -26,19 +64,18 @@ class Recipe(models.Model):
         Ingridient, verbose_name='Ингридиенты', through='RecipeIngridient'
     )
     tags = models.ManyToManyField(
-        Tag, verbose_name='Теги', through='RecipeTag'
+        Tag, verbose_name='Теги', related_name='recipes'
     )
     cooking_time = models.PositiveSmallIntegerField(
-        validators=[MinValueValidator(MIN_VALUE_VALIDATOR)],
+        validators=[
+            MinValueValidator(MIN_VALUE_VALIDATOR),
+            MaxValueValidator(MAX_VALUE_VALIDATOR)
+        ],
         verbose_name='Время приготовления в минутах'
     )
     pub_date = models.DateTimeField(
         auto_now_add=True,
         verbose_name='Дата публикации'
-    )
-    in_favorite_count = models.PositiveSmallIntegerField(
-        default=0,
-        verbose_name='Добавили в избранное'
     )
 
     def __str__(self):
@@ -47,24 +84,6 @@ class Recipe(models.Model):
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
-
-
-class RecipeTag(models.Model):
-    recipe = models.ForeignKey(
-        Recipe, on_delete=models.SET_NULL, null=True,
-        verbose_name='Рецепт'
-    )
-    tag = models.ForeignKey(
-        Tag, on_delete=models.SET_NULL, null=True,
-        verbose_name='Тег'
-    )
-
-    def __str__(self):
-        return f'{self.tag} - {self.recipe}'
-
-    class Meta:
-        verbose_name = 'Тег рецепта'
-        verbose_name_plural = 'Тег рецептов'
 
 
 class RecipeIngridient(models.Model):
@@ -76,7 +95,11 @@ class RecipeIngridient(models.Model):
         Ingridient, on_delete=models.CASCADE,
         verbose_name='Ингридиент'
     )
-    amount = models.FloatField(
+    amount = models.PositiveSmallIntegerField(
+        validators=[
+            MinValueValidator(MIN_VALUE_VALIDATOR),
+            MaxValueValidator(MAX_VALUE_VALIDATOR)
+        ],
         verbose_name='Количество'
     )
 
@@ -96,10 +119,18 @@ class FavoriteAndShoppingCartBase(models.Model):
         Recipe, on_delete=models.CASCADE,
         verbose_name='Рецепт'
     )
-    owner = models.ForeignKey(
+    user = models.ForeignKey(
         CustomUser, on_delete=models.CASCADE,
         verbose_name='Владелец'
     )
+
+    class Meta:
+        abstract = True
+        constraints = [
+            models.UniqueConstraint(
+                fields=['recipe', 'user'], name='unique_fields'
+            )
+        ]
 
 
 class Favorite(FavoriteAndShoppingCartBase):

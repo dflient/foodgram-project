@@ -1,11 +1,27 @@
+from colorfield.fields import ColorField
 from django.contrib.auth.models import AnonymousUser
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from ingridients.models import Ingridient
-from tags.models import Tag
 from users.serializers import UserSerializer
-from .models import Favorite, Recipe, RecipeIngridient, RecipeTag, ShoppingCart
+from .models import (
+    Favorite, Recipe, RecipeIngridient, ShoppingCart, Ingridient, Tag
+)
+
+
+class TagSerializer(serializers.ModelSerializer):
+    color = ColorField()
+
+    class Meta:
+        model = Tag
+        fields = ('id', 'name', 'color', 'slug')
+
+
+class IngridientSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Ingridient
+        fields = ['id', 'name', 'measurement_unit']
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
@@ -53,17 +69,6 @@ class RecipeIngridientSerializer(serializers.ModelSerializer):
     class Meta:
         model = RecipeIngridient
         fields = ['id', 'amount']
-
-
-class RecipeTagSerializer(serializers.ModelSerializer):
-    id = serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all())
-    name = serializers.CharField(source='tag.name', read_only=True)
-    color = serializers.CharField(source='tag.color', read_only=True)
-    slug = serializers.SlugField(source='tag.slug', read_only=True)
-
-    class Meta:
-        model = RecipeTag
-        fields = ['id', 'name', 'color', 'slug']
 
 
 class RecipeSerializer(serializers.ModelSerializer):
@@ -130,7 +135,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             return False
 
         return Favorite.objects.filter(
-            recipe=instance.id, owner=request.user
+            recipe=instance.id, user=request.user
         ).exists()
 
     def get_is_in_shopping_cart(self, instance):
@@ -140,7 +145,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             return False
 
         return ShoppingCart.objects.filter(
-            recipe=instance.id, owner=request.user
+            recipe=instance.id, user=request.user
         ).exists()
 
     def create(self, validated_data):
@@ -166,6 +171,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             tag_names.add(tag_data)
 
         recipe = Recipe.objects.create(**validated_data)
+        recipe.tags.set(tags_data)
 
         for ingredient_data in ingredients_data:
             ingredient_id = ingredient_data['id']
@@ -174,21 +180,15 @@ class RecipeSerializer(serializers.ModelSerializer):
                 recipe=recipe, ingredient=ingredient_id, amount=amount
             )
 
-        for tag in tags_data:
-            RecipeTag.objects.create(
-                recipe=recipe, tag=tag
-            )
-
         return recipe
 
     def update(self, instance, validated_data):
-        self.update_ingredients(instance, validated_data)
-        self.update_tags(instance, validated_data)
-        self.remove_unused_tags(instance, validated_data)
-        return instance
-
-    def update_ingredients(self, instance, validated_data):
         ingredients_data = validated_data.pop('ingredients', [])
+        tags_data = validated_data.pop('tags', [])
+
+        instance.tags.clear()
+        instance.tags.set(tags_data)
+
         ingredients_list = []
         for ingredient in ingredients_data:
             name = ingredient.get('id')
@@ -198,6 +198,9 @@ class RecipeSerializer(serializers.ModelSerializer):
                     'Нельзя использовать один ингредиент дважды'
                 )
             ingredients_list.append((name, amount))
+
+        self.delete_unused_ingredients(instance, ingredients_data)
+
         for name, amount in ingredients_list:
             try:
                 RecipeIngridient.objects.create(
@@ -211,34 +214,42 @@ class RecipeSerializer(serializers.ModelSerializer):
                     recipe_id=instance.id, ingredient=name, amount=amount
                 )
 
-    def update_tags(self, instance, validated_data):
-        tags_data = validated_data.pop('tags', [])
-        tags_list = []
-        for tag in tags_data:
-            if tag in tags_list:
-                raise serializers.ValidationError(
-                    'Нельзя использовать один тег дважды'
-                )
-            tags_list.append(tag)
-        for tag in tags_list:
-            if not RecipeTag.objects.filter(
-                recipe_id=instance.id, tag=tag
-            ).exists():
-                RecipeTag.objects.create(recipe_id=instance.id, tag=tag)
+        return instance
 
-    def remove_unused_tags(self, instance, validated_data):
-        tags_data = validated_data.get('tags', [])
-        tags_in_recipe = RecipeTag.objects.filter(recipe_id=instance.id)
-        for tag in tags_in_recipe:
-            if tag.tag not in tags_data:
-                RecipeTag.objects.get(
-                    recipe_id=instance.id, tag=tag.tag
-                ).delete()
+    def delete_unused_ingredients(self, instance, ingredients_data):
+        ingredients_names = []
+        for ingredient in ingredients_data:
+            ingredient_obj = ingredient.get('id')
+            ingredients_names.append(ingredient_obj.name)
+
+        ingredients_in_recipe = RecipeIngridient.objects.filter(
+            recipe_id=instance.id
+        )
+
+        for ingredient in ingredients_in_recipe:
+            if ingredient.ingredient not in ingredients_names:
+                ingredient.delete()
 
     def to_representation(self, instance):
         recipe_obj = super().to_representation(instance)
         ingridients = recipe_obj.get('ingredients')
         tags = recipe_obj.get('tags')
+
+        tags_list = []
+
+        for tag_id in tags:
+            tag_obj = Tag.objects.get(id=tag_id)
+            tags_list.append(tag_obj)
+
+        recipe_obj['tags'] = [
+            {
+                'id': tag.id,
+                'name': tag.name,
+                'color': tag.color,
+                'slug': tag.slug
+            } for tag in tags_list
+        ]
+
         ingridients_list = []
 
         for ingridient in ingridients:
@@ -255,24 +266,6 @@ class RecipeSerializer(serializers.ModelSerializer):
                 'measurement_unit': ingridient.ingredient.measurement_unit,
                 'amount': ingridient.amount
             } for ingridient in ingridients_list
-        ]
-
-        tags_list = []
-
-        for tag in tags:
-            tag_obj = RecipeTag.objects.get(
-                recipe_id=recipe_obj.get('id'),
-                tag_id=tag
-            )
-            tags_list.append(tag_obj)
-
-        recipe_obj['tags'] = [
-            {
-                'id': tag.tag.id,
-                'name': tag.tag.name,
-                'color': tag.tag.color,
-                'slug': tag.tag.slug
-            } for tag in tags_list
         ]
 
         return recipe_obj

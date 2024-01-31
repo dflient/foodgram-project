@@ -25,12 +25,9 @@ class UserSerializer(serializers.ModelSerializer):
         if isinstance(request.user, AnonymousUser):
             return False
 
-        if Follow.objects.filter(
+        return Follow.objects.filter(
             user=request.user, following__id=obj.id
-        ).exists():
-            return True
-        else:
-            return False
+        ).exists()
 
 
 class CreateUserSerializer(serializers.ModelSerializer):

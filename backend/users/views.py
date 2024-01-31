@@ -8,7 +8,6 @@ from rest_framework.response import Response
 
 from .models import CustomUser, Follow
 from .paginators import UserPagination
-from .permissions import OwnerOfAccountOrAdminOrReadOnly
 from .serializers import (CreateUserSerializer, FollowSerializer,
                           ResetPasswordSerializer, UserSerializer)
 
@@ -69,12 +68,7 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
     pagination_class = UserPagination
-
-    def get_permissions(self):
-        if self.action != 'create':
-            return [OwnerOfAccountOrAdminOrReadOnly()]
-        else:
-            return super().get_permissions()
+    http_method_names = ['get', 'post']
 
     def retrieve(self, request, *args, **kwargs):
         if kwargs.get('pk') == 'me':
