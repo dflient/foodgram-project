@@ -2,7 +2,7 @@ import csv
 import os
 
 from django.core.management.base import BaseCommand, CommandError
-from ingridients.models import Ingridient
+from recipes.models import Ingridient
 
 
 class Command(BaseCommand):
