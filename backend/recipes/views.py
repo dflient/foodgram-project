@@ -24,6 +24,7 @@ from .serializers import (
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    ordering = ('name',)
     http_method_names = ['get', ]
 
     def list(self, request, *args, **kwargs):

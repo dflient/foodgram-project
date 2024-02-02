@@ -15,8 +15,7 @@ def validate_username(value):
 
 def check_name(value):
     '''Валидация для модели и shell'''
-    lower_value = value.lower()
-    if lower_value == "me":
+    if value.lower() == "me":
 
         raise ValidationError(
             f"Нельзя создать пользователя с никнеймом {value}!"

@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AnonymousUser
+from djoser.serializers import UserSerializer, UserCreateSerializer
 from rest_framework import serializers
 
 from foodgram_backend.constants import MAX_USER_FIELDS_LENGHT
@@ -7,7 +8,7 @@ from .models import CustomUser, Follow
 from .validators import validate_username
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField(
         required=False
     )
@@ -30,22 +31,7 @@ class UserSerializer(serializers.ModelSerializer):
         ).exists()
 
 
-class CreateUserSerializer(serializers.ModelSerializer):
-    email = serializers.CharField(
-        max_length=254, required=True
-    )
-    username = serializers.CharField(
-        max_length=150, required=True
-    )
-    first_name = serializers.CharField(
-        max_length=150, required=True
-    )
-    last_name = serializers.CharField(
-        max_length=150, required=True
-    )
-    password = serializers.CharField(
-        max_length=150, required=True, write_only=True
-    )
+class CreateUserSerializer(UserCreateSerializer):
 
     def validate_username(self, value):
         return validate_username(value)
