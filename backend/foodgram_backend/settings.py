@@ -25,9 +25,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'colorfield',
+    'api',
     'recipes',
     'users',
-    'authentication',
     'rest_framework.authtoken',
     'rest_framework',
     'django_filters',
@@ -109,7 +109,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'authentication.authentication.APIKeyAuthentication',
+        'api.authentication.APIKeyAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',

@@ -4,7 +4,7 @@ from django.db import models
 
 from foodgram_backend.constants import (MAX_EMAIL_LENGHT,
                                         MAX_USER_FIELDS_LENGHT)
-from .validators import check_name
+from api.validators import check_name
 
 
 class CustomUser(AbstractUser):
