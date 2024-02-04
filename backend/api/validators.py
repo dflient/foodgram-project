@@ -21,8 +21,8 @@ def validate_username(value):
         return value
 
     raise serializers.ValidationError(
-            f'Нельзя создать пользователя с никнеймом {value}!'
-        )
+        f'Нельзя создать пользователя с никнеймом {value}!'
+    )
 
 
 def check_name(value):

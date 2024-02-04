@@ -124,7 +124,6 @@ def logout(request):
         )
 
 
-
 class ChangePasswordViewSet(
     mixins.CreateModelMixin, viewsets.GenericViewSet
 ):

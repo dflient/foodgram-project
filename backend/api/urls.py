@@ -20,8 +20,12 @@ urlpatterns = [
     path('recipes/<int:pk>/shopping_cart/', ShoppingCartViewSet.as_view(
         {'post': 'create', 'delete': 'destroy'}
     )),
-    path('users/set_password/', ChangePasswordViewSet.as_view({'post': 'create'})),
-    path('users/subscriptions/', SubscriptionsListViewSet.as_view({'get': 'list'})),
+    path('users/set_password/', ChangePasswordViewSet.as_view(
+        {'post': 'create'}
+    )),
+    path('users/subscriptions/', SubscriptionsListViewSet.as_view(
+        {'get': 'list'}
+    )),
     path('users/<int:pk>/subscribe/', SubscribeViewSet.as_view({
         'post': 'create', 'delete': 'destroy'
     })),
